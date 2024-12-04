@@ -11,11 +11,9 @@ else:
   input_fname = sys.argv[1]
 
 # Read and parse input
-reports = []
 with open(input_fname) as f:
   for line in f:
-    tokens = line.split()
-    reports.append(list(int(x) for x in tokens))
+    pass
 
 # ------------------------------------------------------------------------------
 # Part 1
