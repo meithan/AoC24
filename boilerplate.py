@@ -4,7 +4,7 @@ import sys
 
 # ==============================================================================
 
-# Get filename of input as CLI arg. If not given, default to "day<X>.in"
+# Get filename of input as CLI arg. If not given, default to "input.txt"
 if len(sys.argv) == 1:
   input_fname = "input.txt"
 else:
