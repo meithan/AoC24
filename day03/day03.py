@@ -20,7 +20,7 @@ with open(input_fname) as f:
 # Part 1
 
 ans1 = 0
-matches = re.findall("mul\((\d{1,3}),(\d{1,3})\)", memory)
+matches = re.findall(r"mul\((\d{1,3}),(\d{1,3})\)", memory)
 for a,b in matches:
   ans1 += int(a) * int(b)
 
