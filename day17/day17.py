@@ -119,6 +119,8 @@ print("Part 1:", ans2)
 # ------------------------------------------------------------------------------
 # Part 2
 
+# We first write a simple disassembler to understand what the program is doing
+
 def combo_op_str(operand):
   if 0 <= operand <= 3:
     return str(operand)
@@ -164,8 +166,6 @@ for i,line in enumerate(program_dis):
   print(i, line)
 print()
 
-# output = execute_program(program, (reg_A, reg_B, reg_C), debug=True)
-
 # The inputs's disassembled code is:
 # 0 REG_B = REG_A % 8
 # 1 REG_B = REG_B ^ 7
@@ -175,8 +175,9 @@ print()
 # 5 REG_B = REG_B ^ REG_C
 # 6 OUTPUT REG_B % 8
 # 7 GOTO 0 IF REG_A != 0
-# Interpretation is as follows:
-# Start with A=N, B=0, C=0
+#
+# In simple words, the program does the following:
+# Start with A=(some value), B=0, C=0
 # 0: Take the 3 rightmost bits of A, store them into B
 # 1: Invert B (bitwise)
 # 2: Righshift A by B places (between 0 and 7), store result in C
@@ -185,34 +186,68 @@ print()
 # 5: Compute B xor C, store in B
 # 6: Output 3 rightmost bits of B
 # 7: Halt if A is zero, otherwise repeat
-# In each iteration, output is given by:
-# output = (A % 8) ^ [int(A >> inv(A % 8))] % 8
-# The key insight is that the output of every iteration depends only on
-# the 10 rightmost bits of A at that time, and A simply right-shifts by 3
-# independently every time.
-def gen_possible_A(target):
-  possible = []
-  for A in range(2**10):
-    output = ((A % 8) ^ (int(A >> ((A % 8) ^ 7)))) % 8
-    if output == target:
-      possible.append(A)
-  return possible
+#
+# The output can thus be summed into a single expression that depends only
+# on the value of A at the start of the iteration:
+#   output = (A % 8) ^ [int(A >> inv(A % 8))] % 8
+# And after every iteration, A is divided by 8, or right-shifted by 3 places,
+# until it is 0.
+#
+# The key insight is that the answer (the initial value of A that yields the
+# target output sequence) can be reconstructed from the output sequence in
+# reverse order 3 bits at a time.
+#
+# Consider the last output value, zero (it must be 0 in all problem inputs).
+# The value of A at this point cannot be greater than 7, otherwise, it would
+# not reach zero when divided by 8. Hence we have only 8 possibilities (0-7),
+# or 3 bit combinations (these are the 3 most significant bits of the final
+# answer). For each possibility we try whether it yields the correct output.
+# We find that only 0 (000) and 7 (111) do. So we keep these two values.
+#
+# Then, for every subsequent value in the output sequence (in reverse order),
+# we start with each value A kept back from the previous stage, left-shift it
+# by three places, and trying out the 7 possibilities for the next 3 bits.
+# For each new candidate A, we check two conditions:
+#    (a) That it yields the correct output value at this stage
+#    (b) That when right-shifts 3*k times, it results in zero
+# If the resulting A passes, we keep it for the next stage.
+#
+# After this process goes through the entire target output sequence (the
+# "program"), we are left with a collection of candidate A values that all
+# output the correct output sequence, by consstruction. We simply pick the
+# smallest one.
 
-values = gen_possible_A(0)
-for v in values:
-  print(bin(v)[2:].zfill(10), ((v % 8) ^ (int(v >> ((v % 8) ^ 7)))) % 8, v >> 3)
+def calc_output(A):
+  return ((A % 8) ^ (int(A >> ((A % 8) ^ 7)))) % 8
 
-# for i,target in enumerate(reversed(program)):
-#   print(target)
-#   values = gen_possible_A(target)
-#   if i == 0:
-#     possible = set(values)
-#   else:
-#     for v in values:
-#       v 
+prog_rev = list(reversed(program))
+print(prog_rev)
 
+open_set = [0]
+for k in range(len(program)):
+  target = prog_rev[k]
+  print(f"k = {k}, target = {target}")
+  new_set = []
+  print(open_set)
+  for A in open_set:
+    # print(f"Try: {A}")
+    for b in range(8):
+      n = (A << 3) + b
+      out = calc_output(n)
+      nn = n >> (3*(k+1))
+      if out == target and nn == 0:
+        # print("{} ({}), out={}, nn={}".format(bin(n)[2:].zfill(10), n, out, nn))
+        new_set.append(n)
+  open_set = new_set
+  # input()
 
-print("Part 2:", None)
+# print(open_set)
+ans1 = min(open_set)
+
+out = execute_program(program, (ans1, 0, 0))
+print(out == program)
+
+print("Part 2:", ans1)
 sys.exit()
 
 # Solves the example for the program 0,3,5,4,3,0
